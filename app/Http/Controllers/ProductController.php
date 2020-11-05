@@ -60,6 +60,9 @@ class ProductController extends Controller
         $inital_value = DB::table('product_info')->where('p_id',$product_id)->pluck('stock')->first();
         $ldate = new DateTime;
         $ldate->format('m-d-y H:i:s');
+        $date = $ldate->format('y-m-d H:i:s');
+        $current_date =  explode(' ',$date);
+        
         if($updation_type == 'Add'){
             $cost_price = $request['cost_price'];
             $value = $inital_value +  $update_stock;
@@ -103,8 +106,28 @@ class ProductController extends Controller
                 $update_sell_record = DB::table('product_sale')->where('p_id',$product_id)->update(['sell_record'=> $sale_of_product_so_far,'revenue_earned'=>$reveenue_earned,'profit_earned'=>$revenue_earned]);
     
             }
-            $per_day_product_sale = DB::table('product_per_day_sale')->insert(['p_id'=>$product_id,'stock_sell'=>$update_stock,'average_price'=>$avg_price,'Date'=>$ldate]);
+            $check_for_date = DB::table('product_per_day_sale')->where('p_id',$product_id)->pluck('Date')->last();
+            $updation_date =  explode(' ', $check_for_date);
+            $current_day = explode('-',$current_date[0]);
+            $last_updated_day = explode('-',$updation_date[0]);
+            if($check_for_date != ''){
+                if($current_day[1] == $last_updated_day[1] && $current_day[2] == $last_updated_day[2]){
+                    $last_stock_sell = DB::table('product_per_day_sale')->where('p_id',$product_id)->pluck('stock_sell')->last();
+                    $previous_average_price = DB::table('product_per_day_sale')->where('p_id',$product_id)->pluck('average_price')->last();
+                    $total_stock_sell =  $last_stock_sell + $update_stock;
+                    $update_today_stock_info = DB::table('product_per_day_sale')->select('*')->where(['p_id'=>$product_id])->orderBy('Date','desc')->limit(1)->update(['stock_sell'=>$total_stock_sell,'average_price'=>$avg_price]);;
+                   
+                }
+                else{
+                    DB::table('product_per_day_sale')->insert(['p_id'=>$product_id,'stock_sell'=>$update_stock,'average_price'=>$avg_price,'Date'=>$ldate]);
+                   
+                }
+            }
+            else{
+                $per_day_product_sale = DB::table('product_per_day_sale')->insert(['p_id'=>$product_id,'stock_sell'=>$update_stock,'average_price'=>$avg_price,'Date'=>$ldate]);
+            }
            
+            
         }
     
        
