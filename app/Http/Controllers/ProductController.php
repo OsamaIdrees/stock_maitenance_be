@@ -62,11 +62,27 @@ class ProductController extends Controller
         $ldate->format('m-d-y H:i:s');
         $date = $ldate->format('y-m-d H:i:s');
         $current_date =  explode(' ',$date);
+        $current_day = explode('-',$current_date[0]);
         
         if($updation_type == 'Add'){
             $cost_price = $request['cost_price'];
             $value = $inital_value +  $update_stock;
             $update_cost_price = DB::table('product')->where('product_name',$product_name)->update(['product_price'=>$cost_price]);
+            $last_insertion_date = DB::table('stock_input_record')->where('p_id',$product_id)->pluck('Date')->last();
+            $extract = explode(' ', $last_insertion_date);
+            $extract_updated_day = explode('-',$extract[0]);
+            if($last_insertion_date != ''){
+                if($current_day[1] == $extract_updated_day[1] && $current_day[2] == $extract_updated_day[2]){
+                    $last_stock_in = DB::table('stock_input_record')->where('p_id',$product_id)->pluck('stock_in')->first();
+                    $updated_stock_in = $last_stock_in + $update_stock;
+                    $stock_input =  DB::table('stock_input_record')->select('*')->where(['p_id'=>$product_id])->orderBy('Date','desc')->limit(1)->update(['stock_in'=>$updated_stock_in,'cost_price'=>$cost_price,'Date'=>$ldate]);
+                }
+                else{
+                    $stock_input = DB::table('stock_input_record')->insert(['p_id'=>$product_id,'stock_in'=>$update_stock,'cost_price'=>$cost_price,'Date'=>$ldate]);
+                }
+            }
+            
+
         }
         else{
             if($inital_value<=0){
@@ -88,6 +104,7 @@ class ProductController extends Controller
             if($previous_sell == ''){
                $sale_of_product_so_far = $update_stock;
                $revenue_earned =  $avg_price * $update_stock;
+               
                $insert_sell_reocrd = DB::table('product_sale')->insert(['p_id'=>$product_id,'sell_record'=>$sale_of_product_so_far,'revenue_earned'=>$revenue_earned,'profit_earned'=>$profit_revenue]);
     
             }
@@ -108,7 +125,6 @@ class ProductController extends Controller
             }
             $check_for_date = DB::table('product_per_day_sale')->where('p_id',$product_id)->pluck('Date')->last();
             $updation_date =  explode(' ', $check_for_date);
-            $current_day = explode('-',$current_date[0]);
             $last_updated_day = explode('-',$updation_date[0]);
             if($check_for_date != ''){
                 if($current_day[1] == $last_updated_day[1] && $current_day[2] == $last_updated_day[2]){
@@ -145,11 +161,12 @@ class ProductController extends Controller
         $stock_info = DB::table('product_info')->select('stock','updated_at')->where('p_id',$p_id)->get();
         $stock_sale_record = DB::table('product_sale')->select('sell_record','revenue_earned','profit_earned')->where('p_id',$p_id)->get();
         $required_info_from_per_day_sale = DB::table('product_per_day_sale')->select('stock_sell','average_price','Date')->where('p_id',$p_id)->orderBy('Date', 'desc')->get();
+        $stock_in_record = DB::table('stock_input_record')->select('stock_in','cost_price','Date')->where('p_id',$p_id)->orderBy('Date', 'desc')->get();
         if($stock_sale_record == ''){
-            return response()->json(['status'=>true,'product_detail'=>$product_detail,'stock_info'=>$stock_info,'sub_result'=>false]);
+            return response()->json(['status'=>true,'product_detail'=>$product_detail,'stock_info'=>$stock_info,'sub_result'=>false,'stock_in_record'=>$stock_in_record]);
         }
         else{
-            return response()->json(['status'=>true,'product_detail'=>$product_detail,'stock_info'=>$stock_info,'product_sell_record'=>$stock_sale_record,'sub_result'=>true,'per_day_sale'=>$required_info_from_per_day_sale]);
+            return response()->json(['status'=>true,'product_detail'=>$product_detail,'stock_info'=>$stock_info,'product_sell_record'=>$stock_sale_record,'sub_result'=>true,'per_day_sale'=>$required_info_from_per_day_sale,'stock_in_record'=>$stock_in_record]);
         }
        
     }
