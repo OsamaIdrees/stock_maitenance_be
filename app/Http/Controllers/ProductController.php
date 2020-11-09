@@ -24,6 +24,7 @@ class ProductController extends Controller
             if($insert_data){
                 $fetch_product_id = DB::table('product')->where('product_name',$p_name)->pluck('id')->first();
                 $insert_stock = DB::table('product_info')->insert(['stock'=>$p_stock,'updated_at'=>$ldate,'p_id'=>$fetch_product_id]);
+                $stock_input = DB::table('stock_input_record')->insert(['p_id'=>$fetch_product_id,'stock_in'=>$p_stock,'cost_price'=>$p_price,'Date'=>$ldate]);
                 if($insert_data & $insert_stock){
                     return response()->json(['status'=>true,'message'=>'Product Added Successfully']);
                 }
