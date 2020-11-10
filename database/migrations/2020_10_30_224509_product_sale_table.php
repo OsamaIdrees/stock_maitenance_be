@@ -21,6 +21,7 @@ class ProductSaleTable extends Migration
             $table->integer('sell_record');
             $table->integer('revenue_earned');
             $table->integer('profit_earned');
+            $table->timestamp('last_updated');
 
         });
     }
